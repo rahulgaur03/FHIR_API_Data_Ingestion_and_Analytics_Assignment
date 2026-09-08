@@ -1,0 +1,30 @@
+[project]
+name = "FHIR_API_Data_Ingestion_and_Analytics_Assignment"
+version = "0.0.1"
+authors = [{ name = "rahulgaur0304@gmail.com" }]
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    # FHIR API HTTP calls
+    "requests>=2.28.0",
+    # Config file parsing
+    "pyyaml>=6.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+    "databricks-dlt",
+    "databricks-connect>=15.4,<15.5",
+    "ipykernel",
+]
+
+[project.scripts]
+main = "FHIR_API_Data_Ingestion_and_Analytics_Assignment.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 120

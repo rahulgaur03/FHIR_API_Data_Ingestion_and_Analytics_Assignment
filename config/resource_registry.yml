@@ -1,0 +1,90 @@
+# FHIR Lakehouse Resource Registry
+# Central config for all FHIR resources we ingest.
+# To add a new resource type, just add an entry below.
+
+settings:
+  fhir_base_url: "https://hapi.fhir.org/baseR4"
+  page_size: 100
+  max_pages: 50
+  incremental_days: 3
+
+schemas:
+  raw: "raw"
+  bronze: "bronze"
+  silver: "silver"
+  gold: "gold"
+
+resources:
+  Patient:
+    api_path: "/Patient"
+    bronze_table: "bronze_patient"
+    silver_table: "silver_patient"
+    scd2_hash_columns:
+      - active
+      - gender
+      - birth_date
+      - name_text
+      - name_family
+      - name_given
+      - identifier_system
+      - identifier_value
+      - address_city
+      - address_state
+      - address_country
+      - address_postal_code
+      - marital_status_code
+
+  Encounter:
+    api_path: "/Encounter"
+    bronze_table: "bronze_encounter"
+    silver_table: "silver_encounter"
+    scd2_hash_columns:
+      - status
+      - class_code
+      - class_display
+      - patient_reference
+      - period_start
+      - period_end
+      - type_code
+      - type_display
+      - reason_display
+
+  Observation:
+    api_path: "/Observation"
+    bronze_table: "bronze_observation"
+    silver_table: "silver_observation"
+    scd2_hash_columns:
+      - status
+      - category_code
+      - category_display
+      - code_system
+      - observation_code
+      - observation_display
+      - observation_text
+      - patient_reference
+      - encounter_reference
+      - effective_datetime
+      - value_quantity
+      - value_unit
+      - value_string
+      - value_codeable_text
+
+  Condition:
+    api_path: "/Condition"
+    bronze_table: "bronze_condition"
+    silver_table: "silver_condition"
+    scd2_hash_columns:
+      - clinical_status
+      - verification_status
+      - verification_display
+      - category_code
+      - category_display
+      - code_system
+      - condition_code
+      - condition_display
+      - condition_text
+      - patient_reference
+      - encounter_reference
+      - onset_datetime
+      - abatement_datetime
+      - recorded_date

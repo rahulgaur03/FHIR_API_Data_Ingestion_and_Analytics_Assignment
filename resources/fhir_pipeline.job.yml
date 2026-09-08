@@ -1,0 +1,136 @@
+# FHIR Medallion Lakehouse Pipeline
+#
+# Ingestion is sequential: Patient → Encounter → Observation → Condition
+# After ingestion, each resource flows through bronze → silver in parallel.
+# Gold runs after all silver tasks complete.
+
+resources:
+  jobs:
+    fhir_pipeline:
+      name: fhir_pipeline
+
+      trigger:
+        periodic:
+          interval: 1
+          unit: DAYS
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+
+      tasks:
+        # --- Sequential Ingestion: Patient → Encounter → Observation → Condition ---
+
+        - task_key: ingest_patient
+          notebook_task:
+            notebook_path: ../src/02_raw_ingestion.py
+            base_parameters:
+              resource_type: Patient
+
+        - task_key: ingest_encounter
+          depends_on:
+            - task_key: ingest_patient
+          notebook_task:
+            notebook_path: ../src/02_raw_ingestion.py
+            base_parameters:
+              resource_type: Encounter
+
+        - task_key: ingest_observation
+          depends_on:
+            - task_key: ingest_encounter
+          notebook_task:
+            notebook_path: ../src/02_raw_ingestion.py
+            base_parameters:
+              resource_type: Observation
+
+        - task_key: ingest_condition
+          depends_on:
+            - task_key: ingest_observation
+          notebook_task:
+            notebook_path: ../src/02_raw_ingestion.py
+            base_parameters:
+              resource_type: Condition
+
+        # --- Bronze + Silver (parallel per resource, each starts after its ingestion) ---
+
+        - task_key: bronze_patient
+          depends_on:
+            - task_key: ingest_patient
+          notebook_task:
+            notebook_path: ../src/03_bronze_layer.py
+            base_parameters:
+              resource_type: Patient
+
+        - task_key: silver_patient
+          depends_on:
+            - task_key: bronze_patient
+          notebook_task:
+            notebook_path: ../src/04_silver_layer.py
+            base_parameters:
+              resource_type: Patient
+
+        - task_key: bronze_encounter
+          depends_on:
+            - task_key: ingest_encounter
+          notebook_task:
+            notebook_path: ../src/03_bronze_layer.py
+            base_parameters:
+              resource_type: Encounter
+
+        - task_key: silver_encounter
+          depends_on:
+            - task_key: bronze_encounter
+          notebook_task:
+            notebook_path: ../src/04_silver_layer.py
+            base_parameters:
+              resource_type: Encounter
+
+        - task_key: bronze_observation
+          depends_on:
+            - task_key: ingest_observation
+          notebook_task:
+            notebook_path: ../src/03_bronze_layer.py
+            base_parameters:
+              resource_type: Observation
+
+        - task_key: silver_observation
+          depends_on:
+            - task_key: bronze_observation
+          notebook_task:
+            notebook_path: ../src/04_silver_layer.py
+            base_parameters:
+              resource_type: Observation
+
+        - task_key: bronze_condition
+          depends_on:
+            - task_key: ingest_condition
+          notebook_task:
+            notebook_path: ../src/03_bronze_layer.py
+            base_parameters:
+              resource_type: Condition
+
+        - task_key: silver_condition
+          depends_on:
+            - task_key: bronze_condition
+          notebook_task:
+            notebook_path: ../src/04_silver_layer.py
+            base_parameters:
+              resource_type: Condition
+
+        # --- Gold layer (waits for all silver tasks) ---
+
+        - task_key: gold_views
+          depends_on:
+            - task_key: silver_patient
+            - task_key: silver_encounter
+            - task_key: silver_observation
+            - task_key: silver_condition
+          notebook_task:
+            notebook_path: ../src/05_gold_layer.py
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
